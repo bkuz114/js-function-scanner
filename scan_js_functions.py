@@ -174,14 +174,14 @@ def get_excluded_files(scan_root, exclude_patterns, exclude_common=False):
         exclude_common: Boolean, whether to apply COMMON_EXCLUDES
 
     Returns:
-        Set of relative paths (as strings) to exclude
+        List of relative paths (as Pathlib objects) to exclude
     """
     all_patterns = list(exclude_patterns) if exclude_patterns else []
     if exclude_common:
         all_patterns.extend(COMMON_EXCLUDES)
 
     if not all_patterns:
-        return set()
+        return []
 
     excluded = set()
     scan_root_path = Path(scan_root)
@@ -202,7 +202,7 @@ def get_excluded_files(scan_root, exclude_patterns, exclude_common=False):
                 for js_file in match_path.rglob("*.js"):
                     excluded.add(js_file)
 
-    return excluded
+    return list(excluded)
 
 
 def scan_js_files(
