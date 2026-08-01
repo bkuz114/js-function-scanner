@@ -8,6 +8,8 @@ A lightweight, dependency-free Python CLI tool for scanning JavaScript files and
 - **Fast Execution**: Regex-based parsing without heavy AST overhead
 - **Comprehensive Pattern Support**: Function declarations, expressions, arrow functions, classes, and ES6 exports
 - **Configurable Output**: Sort alphabetically or preserve file order
+- **Smart Exclusions**: Exclude directories or files with glob patterns (`*`, `?`, `[seq]`, `**`)
+- **Common Exclusions**: Opt-in to exclude common directories (node_modules, dist, build, etc.) with `--exclude-common`
 - **Clean Output**: Strips comments to avoid false positives
 - **Cross-Platform**: Works on Windows, macOS, and Linux
 
@@ -44,6 +46,18 @@ python scan_js_functions.py /path/to/your/project --sort alpha
 
 # Hide files with no top-level functions
 python scan_js_functions.py /path/to/your/project --hide-empty
+
+# Non-recursive scan (top-level only)
+python scan_js_functions.py /path/to/project --no-recursive
+
+# Exclude common directories and files
+python scan_js_functions.py /path/to/project --exclude-common
+
+# Custom exclusions with glob patterns
+python scan_js_functions.py /path/to/project --exclude "**/test/**" --exclude "*.min.js"
+
+# Combine common + custom exclusions
+python scan_js_functions.py /path/to/project --exclude-common --exclude "legacy/**"
 ```
 
 ### Command Line Options
@@ -52,6 +66,9 @@ python scan_js_functions.py /path/to/your/project --hide-empty
 |--------|-------------|
 | `directory` | Directory to scan (default: current directory) |
 | `--sort {alpha,found}` | Sort order: "alpha" (alphabetical) or "found" (order found) (default: "found") |
+| `--exclude PATTERN` |	Glob pattern to exclude (can be specified multiple times). Supports \*, ?, [seq], and \*\* |
+| `--exclude-common` | Exclude common directories and files (node_modules, dist, build, .git, etc.) |
+| `--no-recursive` | Disable recursive scanning (only scan the specified directory, not subdirectories) |
 | `--hide-empty` | Hide files with no top-level functions |
 | `-h, --help` | Show help message and exit |
 
@@ -119,18 +136,11 @@ Found 3 JavaScript file(s):
 
 ## Development
 
-### Planned Enhancements
-
-- `--no-recursive` flag for non-recursive scanning
-- `--exclude` with glob pattern support (\*, ?, [seq], \*\*)
-- `--exclude-common` for opt-in common exclusions (node_modules, dist, etc.)
-- Single file targeting
-
 ### Running Tests
 
 ```bash
-# Run the script with test fixtures (if available)
-python scan_js_functions.py tests/fixtures
+# Run pytest suite
+pytest tests/
 
 # Validate against your own codebase
 python scan_js_functions.py /path/to/your/js/project
