@@ -250,7 +250,7 @@ def scan_js_files(
         if file_path.is_file():
             # Get relative path for matching
             rel_path = file_path.relative_to(directory_path)
-            if not is_excluded(rel_path, exclude_patterns, exclude_common):
+            if rel_path not in excluded_files:
                 js_files.append(file_path)
 
     if not js_files:
