@@ -7,11 +7,13 @@ extracting top-level function names. Useful for codebase exploration,
 documentation generation, and quick API surface analysis.
 
 Features:
-    - Recursive directory scanning
+    - Recursive directory scanning (with non-recursive option)
     - Extract function declarations, expressions, arrow functions, and classes
     - Support for async functions and ES6 export syntax
     - Smart comment stripping to avoid false positives
     - Output sorted alphabetically or in file-order
+    - Exclusion patterns with glob support (*, ?, [seq], **)
+    - Opt-in common exclusions (node_modules, dist, build, etc.)
     - Zero external dependencies (Python standard library only)
 
 Usage Examples:
@@ -20,6 +22,18 @@ Usage Examples:
 
     # Scan specific directory with alphabetical sorting
     python scan_js_functions.py /path/to/project --sort alpha
+
+    # Non-recursive scan (top-level only)
+    python scan_js_functions.py /path/to/project --no-recursive
+
+    # Exclude common directories and files
+    python scan_js_functions.py /path/to/project --exclude-common
+
+    # Custom exclusions with glob patterns
+    python scan_js_functions.py /path/to/project --exclude "**/test/**" --exclude "*.min.js"
+
+    # Combine exclusions: common + custom
+    python scan_js_functions.py /path/to/project --exclude-common --exclude "legacy/**"
 
     # Hide files with no top-level functions
     python scan_js_functions.py /path/to/project --hide-empty
@@ -49,7 +63,22 @@ License: MIT
 import os
 import re
 import argparse
+import glob
 from pathlib import Path
+
+# Common exclusion patterns (opt-in via --exclude-common)
+COMMON_EXCLUDES = [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/.git/**",
+    "**/__pycache__/**",
+    "**/coverage/**",
+    "**/.next/**",
+    "**/.nuxt/**",
+    "**/vendor/**",
+    "*.min.js",
+]
 
 
 def extract_top_level_functions(content, sort_order="found"):
@@ -135,7 +164,57 @@ def extract_top_level_functions(content, sort_order="found"):
         raise ValueError(f"invalid sort_order {sort_order}")
 
 
-def scan_js_files(directory, show_empty=True, sort_order="found", recursive=True):
+def get_excluded_files(scan_root, exclude_patterns, exclude_common=False):
+    """
+    Return set of .js files (as Path objects relative to scan_root) that match any exclusion pattern.
+
+    Args:
+        scan_root: Path object for the root directory being scanned
+        exclude_patterns: List of user-specified exclusion patterns
+        exclude_common: Boolean, whether to apply COMMON_EXCLUDES
+
+    Returns:
+        Set of relative paths (as strings) to exclude
+    """
+    all_patterns = list(exclude_patterns) if exclude_patterns else []
+    if exclude_common:
+        all_patterns.extend(COMMON_EXCLUDES)
+
+    if not all_patterns:
+        return set()
+
+    excluded = set()
+    scan_root_path = Path(scan_root)
+
+    for pattern in all_patterns:
+        # Build the full glob pattern from the scan root
+        full_pattern = str(scan_root_path / pattern)
+        matches = glob.glob(full_pattern, recursive=True)
+        for match in matches:
+            match_path = Path(match)
+
+            # If it's a .js file, add it directly
+            if match_path.suffix.lower() == ".js":
+                rel_path = match_path.relative_to(scan_root_path)
+                excluded.add(rel_path)
+
+            # If it's a directory, collect all .js files under it
+            elif match_path.is_dir():
+                for js_file in match_path.rglob("*.js"):
+                    rel_path = js_file.relative_to(scan_root_path)
+                    excluded.add(rel_path)
+
+    return excluded
+
+
+def scan_js_files(
+    directory,
+    show_empty=True,
+    sort_order="found",
+    recursive=True,
+    exclude_patterns=None,
+    exclude_common=False,
+):
     """
     Scan directory for .js files and extract top-level function names.
     """
@@ -150,7 +229,18 @@ def scan_js_files(directory, show_empty=True, sort_order="found", recursive=True
         print(f"Error: '{directory}' is not a directory.")
         return
 
-    # Walk through directory and find .js files
+    # Get excluded files
+    excluded_files = get_excluded_files(
+        directory_path, exclude_patterns, exclude_common
+    )
+
+    if exclude_common:
+        print(f"Excluding common patterns: {', '.join(COMMON_EXCLUDES)}")
+
+    if exclude_patterns:
+        print(f"Excluding user patterns: {', '.join(exclude_patterns)}")
+
+    # Collect files with exclusions applied
     if recursive:
         iterator = directory_path.rglob("*.js")
     else:
@@ -158,10 +248,13 @@ def scan_js_files(directory, show_empty=True, sort_order="found", recursive=True
 
     for file_path in iterator:
         if file_path.is_file():
-            js_files.append(file_path)
+            # Get relative path for matching
+            rel_path = file_path.relative_to(directory_path)
+            if not is_excluded(rel_path, exclude_patterns, exclude_common):
+                js_files.append(file_path)
 
     if not js_files:
-        print(f"No .js files found in '{directory}'.")
+        print(f"No .js files found in '{directory}' (after applying exclusions).")
         return
 
     print(f"Found {len(js_files)} JavaScript file(s):\n")
@@ -217,10 +310,30 @@ def main():
         action="store_true",
         help="Disable recursive scanning (only scan the specified directory, not subdirectories)",
     )
+    parser.add_argument(
+        "--exclude-common",
+        action="store_true",
+        help="Exclude common directories and files: " + ", ".join(COMMON_EXCLUDES),
+    )
+    parser.add_argument(
+        "--exclude",
+        action="append",
+        dest="exclude_patterns",
+        default=[],
+        help="Glob pattern to exclude (can be specified multiple times). Supports *, ?, [seq], and **",
+    )
 
     args = parser.parse_args()
     show_empty = not args.hide_empty
-    scan_js_files(args.directory, show_empty, args.sort, not args.no_recursive)
+
+    scan_js_files(
+        args.directory,
+        show_empty,
+        args.sort,
+        not args.no_recursive,
+        args.exclude_patterns,
+        args.exclude_common,
+    )
 
 
 if __name__ == "__main__":
