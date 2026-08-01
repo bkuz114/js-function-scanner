@@ -8,7 +8,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned
-- `--no-recursive` flag for disabling recursive scanning
 - `--exclude` with glob pattern support (\*, ?, [seq], \*\*)
 - `--exclude-common` flag for opt-in common exclusions
 - Single file targeting support
@@ -23,5 +22,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Alphabetical and file-order sorting options via `--sort`
 - Directory recursion (default behavior)
 - `--hide-empty` flag to suppress files with no functions
+- `--no-recursive` flag for disabling recursive scanning
 - Dependency-free (Python standard library only)
 - README.md, MIT License
