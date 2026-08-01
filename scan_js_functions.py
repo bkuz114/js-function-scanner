@@ -195,14 +195,12 @@ def get_excluded_files(scan_root, exclude_patterns, exclude_common=False):
 
             # If it's a .js file, add it directly
             if match_path.suffix.lower() == ".js":
-                rel_path = match_path.relative_to(scan_root_path)
-                excluded.add(rel_path)
+                excluded.add(match_path)
 
             # If it's a directory, collect all .js files under it
             elif match_path.is_dir():
                 for js_file in match_path.rglob("*.js"):
-                    rel_path = js_file.relative_to(scan_root_path)
-                    excluded.add(rel_path)
+                    excluded.add(js_file)
 
     return excluded
 
@@ -219,7 +217,7 @@ def scan_js_files(
     Scan directory for .js files and extract top-level function names.
     """
     js_files = []
-    directory_path = Path(directory)
+    directory_path = Path(directory).resolve()
 
     if not directory_path.exists():
         print(f"Error: Directory '{directory}' does not exist.")
@@ -248,9 +246,7 @@ def scan_js_files(
 
     for file_path in iterator:
         if file_path.is_file():
-            # Get relative path for matching
-            rel_path = file_path.relative_to(directory_path)
-            if rel_path not in excluded_files:
+            if file_path not in excluded_files:
                 js_files.append(file_path)
 
     if not js_files:
