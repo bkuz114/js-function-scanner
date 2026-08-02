@@ -10,6 +10,7 @@ A lightweight, dependency-free Python CLI tool for scanning JavaScript files and
 - **Configurable Output**: Sort alphabetically or preserve file order
 - **Smart Exclusions**: Exclude directories or files with glob patterns (`*`, `?`, `[seq]`, `**`)
 - **Common Exclusions**: Opt-in to exclude common directories (node_modules, dist, build, etc.) with `--exclude-common`
+- **Targeted Scanning**: Scan specific files or glob patterns with `--files`
 - **Clean Output**: Strips comments to avoid false positives
 - **Cross-Platform**: Works on Windows, macOS, and Linux
 
@@ -41,6 +42,18 @@ python scan_js_functions.py
 # Scan a specific directory
 python scan_js_functions.py /path/to/your/project
 
+# Scan specific files
+python scan_js_functions.py src/ --files index.js,utils/helper.js
+
+# Scan files matching a glob pattern
+python scan_js_functions.py --files "**/config.js"
+
+# Mix of specific files and globs
+python scan_js_functions.py src/ --files index.js,"**/test/**"
+
+# Absolute paths
+python scan_js_functions.py --files /home/user/project/index.js
+
 # Scan and sort functions alphabetically
 python scan_js_functions.py /path/to/your/project --sort alpha
 
@@ -65,12 +78,20 @@ python scan_js_functions.py /path/to/project --exclude-common --exclude "legacy/
 | Option | Description |
 |--------|-------------|
 | `directory` | Directory to scan (default: current directory) |
+| `--files PATTERN,PATTERN,..` | Comma-separated list of specific files or glob patterns to scan (resolved relative to DIRECTORY). Supports absolute paths. |
 | `--sort {alpha,found}` | Sort order: "alpha" (alphabetical) or "found" (order found) (default: "found") |
 | `--exclude PATTERN` |	Glob pattern to exclude (can be specified multiple times). Supports \*, ?, [seq], and \*\* |
 | `--exclude-common` | Exclude common directories and files (node_modules, dist, build, .git, etc.) |
 | `--no-recursive` | Disable recursive scanning (only scan the specified directory, not subdirectories) |
 | `--hide-empty` | Hide files with no top-level functions |
 | `-h, --help` | Show help message and exit |
+
+#### Directory Mode vs --files Mode
+
+- **Directory mode**: `scan_js_functions.py src/` — scans all `.js` files under `src/`
+- **File mode**: `scan_js_functions.py src/ --files index.js,helper.js` — scans only the specified files
+
+Exclusions (`--exclude`, `--exclude-common`) apply to both modes.
 
 ### Supported JavaScript Patterns
 
