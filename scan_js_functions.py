@@ -188,7 +188,11 @@ def get_excluded_files(scan_root, exclude_patterns, exclude_common=False):
 
     for pattern in all_patterns:
         # Build the full glob pattern from the scan root
-        full_pattern = str(scan_root_path / pattern)
+        # check if pattern abs; if not, make rel scan root
+        # (is_absolute() will also work for glob patterns /home/user/**/*.js)
+        full_pattern = pattern
+        if not Path(pattern).is_absolute():
+            full_pattern = str(scan_root_path / pattern)
         matches = glob.glob(full_pattern, recursive=True)
         for match in matches:
             match_path = Path(match)
