@@ -10,12 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `--exclude` with glob pattern support (\*, ?, [seq], \*\*) for flexible file and directory exclusions
 - `--exclude-common` flag to opt-in to predefined exclusion patterns (node_modules, dist, build, .git, etc.)
+- `--files` option to scan specific files or glob patterns instead of an entire directory
+- Support for absolute paths in `--files` and `--exclude` patterns
 - Test suite for exclusion patterns using pytest
 - File-level documentation updated with new features
 - README updated with new CLI options and usage examples
-
-### Planned
-- Single file targeting support
 
 ## [1.0.0] - 2026-07-31
 
