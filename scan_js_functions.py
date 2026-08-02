@@ -205,8 +205,47 @@ def get_excluded_files(scan_root, exclude_patterns, exclude_common=False):
     return list(excluded)
 
 
+def get_files(directory_path, files, recursive):
+    """
+    Collect .js files based on user input.
+
+    Args:
+        directory_path: Path object for the root directory (used as base for resolving patterns)
+        files: List of file paths or glob patterns. If None or empty, directory scanning is used.
+        recursive: Boolean, whether to scan subdirectories recursively in directory mode
+
+    Returns:
+        List of Path objects for all .js files collected.
+    """
+    js_files = []
+    if files:
+        # Collect files from --files patterns
+        for pattern in files:
+            # check if pattern abs; if not, make rel scan root
+            # (is_absolute() will also work for glob patterns /home/user/**/*.js)
+            full_pattern = pattern
+            if not Path(pattern).is_absolute():
+                full_pattern = str(directory_path / pattern)
+            matches = glob.glob(full_pattern, recursive=True)
+            for match in matches:
+                match_path = Path(match)
+                if match_path.suffix.lower() == ".js":
+                    js_files.append(match_path)
+    else:
+        # Collect files from directory scan
+        if recursive:
+            iterator = directory_path.rglob("*.js")
+        else:
+            iterator = directory_path.glob("*.js")
+        for file_path in iterator:
+            if file_path.is_file():
+                js_files.append(file_path)
+    return js_files
+
+
 def scan_js_files(
     directory,
+    files_list,
     show_empty=True,
     sort_order="found",
     recursive=True,
@@ -216,7 +255,6 @@ def scan_js_files(
     """
     Scan directory for .js files and extract top-level function names.
     """
-    js_files = []
     directory_path = Path(directory).resolve()
 
     if not directory_path.exists():
@@ -238,19 +276,14 @@ def scan_js_files(
     if exclude_patterns:
         print(f"Excluding user patterns: {', '.join(exclude_patterns)}")
 
-    # Collect files with exclusions applied
-    if recursive:
-        iterator = directory_path.rglob("*.js")
-    else:
-        iterator = directory_path.glob("*.js")
+    # Get list of files
+    js_files = get_files(directory_path, files_list, recursive)
 
-    for file_path in iterator:
-        if file_path.is_file():
-            if file_path not in excluded_files:
-                js_files.append(file_path)
+    # Remove excluded files
+    js_files = [f for f in js_files if f not in excluded_files]
 
     if not js_files:
-        print(f"No .js files found in '{directory}' (after applying exclusions).")
+        print(f"No .js files found (after applying exclusions).")
         return
 
     print(f"Found {len(js_files)} JavaScript file(s):\n")
@@ -291,6 +324,11 @@ def main():
         help="Directory to scan (default: current directory)",
     )
     parser.add_argument(
+        "--files",
+        default="",
+        help="Comma-separated list of specific files or glob patterns to scan",
+    )
+    parser.add_argument(
         "--hide-empty",
         action="store_true",
         help="Hide files with no top-level functions",
@@ -322,8 +360,12 @@ def main():
     args = parser.parse_args()
     show_empty = not args.hide_empty
 
+    # list of specific files (globs allowed)
+    files_list = args.files.split(",") if args.files else []
+
     scan_js_files(
         args.directory,
+        files_list,
         show_empty,
         args.sort,
         not args.no_recursive,
