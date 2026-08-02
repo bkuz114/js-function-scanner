@@ -257,7 +257,40 @@ def scan_js_files(
     exclude_common=False,
 ):
     """
-    Scan directory for .js files and extract top-level function names.
+    Scan for .js files and extract top-level function names.
+
+    Orchestrates file collection, exclusion filtering, function extraction,
+    and output formatting. The function supports two modes:
+        - Directory mode: scans all .js files under a root directory (see "directory" arg)
+        - File mode: scans only the specified files or glob patterns (see "files_list" arg)
+
+    Args:
+        directory (str):
+            - Root directory path to scan for .js files from in Directory mode
+            - Also used for resolving relative paths in both Directory and File mode.
+            - Can be relative or absolute; if relative, will resolve relative to cwd
+            - Example: if directory="./.." and files_list=["a.js", "b.js"], then
+              directory will resolve relative to cwd (resulting in cwd parent),
+              and "a.js" and "b.js" will resolve relative to cwd parent
+        files_list (list[str]):
+            - List of specific files (or glob patterns for files) to scan.
+            - If empty or None, Directory mode is used.
+            - If non-empty, File mode is used
+        show_empty (bool): If True, display files with no top-level functions.
+            Defaults to True.
+        sort_order (str): Sort order for function names. Valid values:
+            "found" - preserve order of discovery
+            "alpha" - alphabetical order
+            Defaults to "found".
+        recursive (bool): If True and in directory mode, scan subdirectories
+            recursively. Ignored in file mode. Defaults to True.
+        exclude_patterns (list): List of glob patterns for files/directories
+            to exclude. Applied to all collected files. Defaults to None.
+        exclude_common (bool): If True, apply COMMON_EXCLUDES patterns.
+            Applied to all collected files. Defaults to False.
+
+    Returns:
+        None: Prints output directly to stdout.
     """
     directory_path = Path(directory).resolve()
 
